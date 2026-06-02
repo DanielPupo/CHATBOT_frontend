@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let userSessionId = null;
 
-    // Função para adicionar mensagens no chat
+    // Adiciona mensagens no chat com estética limpa e refinada
     function addMessageToChat(sender, text, type = 'normal') {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sender = 'Você';
         } else if (sender.toLowerCase() === 'bot') {
             messageElement.classList.add('bot-message');
-            sender = 'Bot';
+            sender = "Pupo Perfumista";
         } else {
             messageElement.classList.add('status-message');
         }
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sender = 'Erro';
         } else if (type === 'status') {
             messageElement.classList.add('status-text');
-            sender = 'Status';
+            sender = 'Atelier';
         }
 
         const senderSpan = document.createElement('strong');
@@ -42,58 +42,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textSpan = document.createElement('span');
         
-        // Se for uma mensagem normal (bot ou usuário), renderiza o Markdown
         if (type === 'normal') {
             textSpan.innerHTML = marked.parse(text);
         } else {
-            // Se for erro ou status, mantém como texto puro
             textSpan.textContent = text;
         }
         
         messageElement.appendChild(textSpan);
-
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Função para habilitar/desabilitar o chat
     function setChatEnabled(enabled) {
         messageInput.disabled = !enabled;
         sendButton.disabled = !enabled;
     }
 
-    // Inicialmente desativa o chat
+    // Estado inicial de espera
     setChatEnabled(false);
-    connectionStatus.textContent = 'Desconectado';
+    connectionStatus.textContent = 'Aguardando Inicialização';
     connectionStatus.className = 'status-offline';
-    addMessageToChat('Status', 'Clique em "Iniciar conversa" para começar.', 'status');
+    addMessageToChat('Status', 'Seja bem-vindo. Inicie a experiência para ativar o sommelier olfativo.', 'status');
 
-    // Função para conectar ao servidor
+    // Conectar ao servidor Socket.IO
     function iniciarConversa() {
         if (socket && socket.connected) return;
 
         socket = io(URL_BACKEND);
 
         socket.on('connect', () => {
-            console.log('Conectado ao servidor Socket.IO! SID:', socket.id);
-            connectionStatus.textContent = 'Conectado';
+            connectionStatus.textContent = 'Atelier Conectado';
             connectionStatus.className = 'status-online';
-            addMessageToChat('Status', 'Conectado ao servidor de chat.', 'status');
+            addMessageToChat('Status', 'Conexão estabelecida com a Maison Pupo Parfums.', 'status');
             setChatEnabled(true);
         });
 
         socket.on('disconnect', () => {
-            console.log('Desconectado do servidor Socket.IO.');
-            connectionStatus.textContent = 'Desconectado';
+            connectionStatus.textContent = 'Sessão Encerrada';
             connectionStatus.className = 'status-offline';
-            addMessageToChat('Status', 'Você foi desconectado.', 'status');
+            addMessageToChat('Status', 'Sua sessão com o mestre perfumista foi encerrada.', 'status');
+            setChatEnabled(false);
+        });
+
+        socket.on('connect_error', (error) => {
+            connectionStatus.textContent = 'Erro de Conexão';
+            connectionStatus.className = 'status-offline';
+            addMessageToChat('Status', 'Não foi possível conectar ao servidor. Verifique a internet ou o backend.', 'status');
+            setChatEnabled(false);
+            console.error('Socket.IO connect_error:', error);
+        });
+
+        socket.on('connect_timeout', () => {
+            connectionStatus.textContent = 'Tempo Esgotado';
+            connectionStatus.className = 'status-offline';
+            addMessageToChat('Status', 'A conexão demorou demais. Tente novamente mais tarde.', 'status');
             setChatEnabled(false);
         });
 
         socket.on('status_conexao', (data) => {
-            if (data.session_id) {
-                userSessionId = data.session_id;
-            }
+            if (data.session_id) { userSessionId = data.session_id; }
         });
 
         socket.on('nova_mensagem', (data) => {
@@ -105,22 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função para encerrar a conversa
     function encerrarConversa() {
         if (socket && socket.connected) {
             socket.disconnect();
             setChatEnabled(false);
-            addMessageToChat('Status', 'Conversa encerrada pelo usuário.', 'status');
         }
     }
 
-    // Função para limpar as mensagens da tela
     function limparTela() {
-        chatBox.innerHTML = ''; // Isso apaga todo o HTML de dentro da caixa de chat
-        addMessageToChat('Status', 'Tela limpa.', 'status');
+        chatBox.innerHTML = '';
+        addMessageToChat('Status', 'Histórico de fragrâncias redefinido.', 'status');
     }
 
-    // Enviar mensagem para o servidor
     function sendMessageToServer() {
         const messageText = messageInput.value.trim();
         if (messageText === '') return;
@@ -131,20 +134,16 @@ document.addEventListener('DOMContentLoaded', () => {
             messageInput.value = '';
             messageInput.focus();
         } else {
-            addMessageToChat('Erro', 'Não conectado ao servidor.', 'error');
+            addMessageToChat('Erro', 'Conexão indisponível no momento.', 'error');
         }
     }
 
-    // Eventos dos botões
     iniciarBtn.addEventListener('click', iniciarConversa);
     encerrarBtn.addEventListener('click', encerrarConversa);
     limparBtn.addEventListener('click', limparTela);
     sendButton.addEventListener('click', sendMessageToServer);
 
     messageInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            sendMessageToServer();
-        }
+        if (event.key === 'Enter') { sendMessageToServer(); }
     });
 });
-
