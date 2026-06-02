@@ -1,4 +1,4 @@
-const URL_BACKEND = 'https://chatbot-backend-nine-kappa.vercel.app/' 
+const URL_BACKEND = 'http://localhost:5000' 
 
 document.addEventListener('DOMContentLoaded', () => {
     let socket = null;
